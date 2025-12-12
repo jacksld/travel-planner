@@ -76,7 +76,12 @@ function App() {
 
 
       if (!errors && data) {
-        setResult(data.body || "No itinerary returned");
+        if (data.error) {
+          // Display graceful error from bedrock.js
+          alert(data.error);
+        } else {
+          setResult(data.body || "No itinerary returned");
+        }
       } else {
         console.error("Errors:", errors);
         alert("Failed to generate itinerary. Please try again.");
