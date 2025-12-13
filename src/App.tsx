@@ -35,6 +35,10 @@ function App() {
     interests: string[];
   } | null>(null);
 
+  // State for update existing flow
+  const [existingMatch, setExistingMatch] = useState<Schema["Itinerary"]["type"] | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
+
   // Fetch saved itineraries on mount
   useEffect(() => {
     fetchSavedItineraries();
@@ -97,6 +101,59 @@ function App() {
     setCurrentItinerary(null);
     setResult("");
     setCurrentFormData(null);
+  };
+
+  // Find existing itinerary by destination (case-insensitive)
+  const findExistingItinerary = (destination: string) => {
+    return (
+      savedItineraries.find(
+        (item) => item.destination.toLowerCase() === destination.toLowerCase()
+      ) || null
+    );
+  };
+
+  // Handle save button click - check for existing itinerary first
+  const handleSaveClick = () => {
+    if (!currentFormData) return;
+
+    const existing = findExistingItinerary(currentFormData.destination);
+    if (existing) {
+      setExistingMatch(existing);
+      setShowUpdateModal(true);
+    } else {
+      setShowSaveModal(true);
+    }
+  };
+
+  // Update existing itinerary
+  const updateExistingItinerary = async () => {
+    if (!existingMatch || !result || !currentFormData) return;
+
+    setIsSaving(true);
+    const { data, errors } = await amplifyClient.models.Itinerary.update({
+      id: existingMatch.id,
+      days: currentFormData.days,
+      interests: currentFormData.interests,
+      generatedItinerary: result,
+    });
+
+    if (!errors && data) {
+      setSavedItineraries((prev) =>
+        prev.map((item) => (item.id === existingMatch.id ? data : item))
+      );
+      setShowUpdateModal(false);
+      setExistingMatch(null);
+    } else {
+      alert("Failed to update itinerary. Please try again.");
+    }
+    setIsSaving(false);
+  };
+
+  // Handle "Save as New" when user chooses not to update existing
+  const handleSaveAsNew = () => {
+    setShowUpdateModal(false);
+    setExistingMatch(null);
+    setShowSaveModal(true);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -314,10 +371,7 @@ function App() {
                   result && (
                     <>
                       <div className="result">{result}</div>
-                      <button
-                        onClick={() => setShowSaveModal(true)}
-                        className="save-btn"
-                      >
+                      <button onClick={handleSaveClick} className="save-btn">
                         Save Itinerary
                       </button>
                     </>
@@ -370,6 +424,41 @@ function App() {
                 disabled={!saveName.trim() || isSaving}
               >
                 {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Existing Modal */}
+      {showUpdateModal && existingMatch && (
+        <div className="modal-overlay" onClick={() => setShowUpdateModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Existing Itinerary Found</h3>
+            <p className="update-message">
+              You already have a saved itinerary for{" "}
+              <strong>{existingMatch.destination}</strong> named "
+              <strong>{existingMatch.name}</strong>".
+            </p>
+            <p className="update-question">
+              Would you like to update it or save as a new itinerary?
+            </p>
+            <div className="modal-buttons update-buttons">
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+              <button onClick={handleSaveAsNew} disabled={isSaving}>
+                Save as New
+              </button>
+              <button
+                onClick={updateExistingItinerary}
+                disabled={isSaving}
+                className="update-btn"
+              >
+                {isSaving ? "Updating..." : "Update Existing"}
               </button>
             </div>
           </div>
