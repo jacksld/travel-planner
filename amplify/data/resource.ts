@@ -6,9 +6,20 @@ const schema = a.schema({
   
   // Structures what data comes back from Lambda function
   BedrockResponse: a.customType({
-    body: a.string(),     
-    error: a.string(),     
+    body: a.string(),
+    error: a.string(),
   }),
+
+  // Model for storing saved travel itineraries
+  Itinerary: a
+    .model({
+      name: a.string().required(),
+      destination: a.string().required(),
+      days: a.integer().required(),
+      interests: a.string().array().required(),
+      generatedItinerary: a.string().required(),
+    })
+    .authorization((allow) => [allow.owner()]),
 
   // Define the main query that frontend will call
   askBedrock: a
