@@ -111,6 +111,25 @@
   color: #1a202c;
 }
 
+.item-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  opacity: 0.6;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
+
 .delete-btn {
   background: none;
   border: none;
@@ -331,9 +350,26 @@
   line-height: 1.5;
 }
 
+.update-name-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin: 1rem 0 0.5rem;
+  box-sizing: border-box;
+}
+
 .update-question {
   margin: 0.5rem 0 1.5rem;
   color: #6b7280;
+}
+
+/* ===== Edit Modal ===== */
+.edit-current-name {
+  margin: 0.5rem 0 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 
 .update-buttons {

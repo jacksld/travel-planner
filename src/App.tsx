@@ -38,6 +38,12 @@ function App() {
   // State for update existing flow
   const [existingMatch, setExistingMatch] = useState<Schema["Itinerary"]["type"] | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
+  const [updateName, setUpdateName] = useState<string>("");
+
+  // State for edit modal
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [editingItinerary, setEditingItinerary] = useState<Schema["Itinerary"]["type"] | null>(null);
+  const [editName, setEditName] = useState<string>("");
 
   // Fetch saved itineraries on mount
   useEffect(() => {
@@ -119,6 +125,7 @@ function App() {
     const existing = findExistingItinerary(currentFormData.destination);
     if (existing) {
       setExistingMatch(existing);
+      setUpdateName(existing.name); // Pre-populate with existing name
       setShowUpdateModal(true);
     } else {
       setShowSaveModal(true);
@@ -127,11 +134,12 @@ function App() {
 
   // Update existing itinerary
   const updateExistingItinerary = async () => {
-    if (!existingMatch || !result || !currentFormData) return;
+    if (!existingMatch || !result || !currentFormData || !updateName.trim()) return;
 
     setIsSaving(true);
     const { data, errors } = await amplifyClient.models.Itinerary.update({
       id: existingMatch.id,
+      name: updateName.trim(),
       days: currentFormData.days,
       interests: currentFormData.interests,
       generatedItinerary: result,
@@ -143,6 +151,7 @@ function App() {
       );
       setShowUpdateModal(false);
       setExistingMatch(null);
+      setUpdateName(""); // Clear the name
     } else {
       alert("Failed to update itinerary. Please try again.");
     }
@@ -154,6 +163,41 @@ function App() {
     setShowUpdateModal(false);
     setExistingMatch(null);
     setShowSaveModal(true);
+  };
+
+  // Handle edit button click from sidebar
+  const handleEditClick = (itinerary: Schema["Itinerary"]["type"]) => {
+    setEditingItinerary(itinerary);
+    setEditName(itinerary.name);
+    setShowEditModal(true);
+  };
+
+  // Rename itinerary
+  const renameItinerary = async () => {
+    if (!editingItinerary || !editName.trim()) return;
+
+    setIsSaving(true);
+    const { data, errors } = await amplifyClient.models.Itinerary.update({
+      id: editingItinerary.id,
+      name: editName.trim(),
+    });
+
+    if (!errors && data) {
+      setSavedItineraries((prev) =>
+        prev.map((item) => (item.id === editingItinerary.id ? data : item))
+      );
+      setShowEditModal(false);
+      setEditingItinerary(null);
+      setEditName("");
+
+      // If currently viewing this itinerary, update the view
+      if (currentItinerary?.id === editingItinerary.id) {
+        setCurrentItinerary(data);
+      }
+    } else {
+      alert("Failed to rename itinerary. Please try again.");
+    }
+    setIsSaving(false);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -259,16 +303,29 @@ function App() {
                   className={currentItinerary?.id === item.id ? "active" : ""}
                 >
                   <span onClick={() => viewSavedItinerary(item)}>{item.name}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteItinerary(item.id);
-                    }}
-                    className="delete-btn"
-                    aria-label="Delete"
-                  >
-                    ×
-                  </button>
+                  <div className="item-actions">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(item);
+                      }}
+                      className="edit-btn"
+                      aria-label="Edit"
+                      title="Edit name"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteItinerary(item.id);
+                      }}
+                      className="delete-btn"
+                      aria-label="Delete"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </li>
               ))}
               {savedItineraries.length === 0 && (
@@ -440,6 +497,14 @@ function App() {
               <strong>{existingMatch.destination}</strong> named "
               <strong>{existingMatch.name}</strong>".
             </p>
+            <input
+              type="text"
+              placeholder="Itinerary name"
+              value={updateName}
+              onChange={(e) => setUpdateName(e.target.value)}
+              maxLength={100}
+              className="update-name-input"
+            />
             <p className="update-question">
               Would you like to update it or save as a new itinerary?
             </p>
@@ -455,10 +520,41 @@ function App() {
               </button>
               <button
                 onClick={updateExistingItinerary}
-                disabled={isSaving}
+                disabled={!updateName.trim() || isSaving}
                 className="update-btn"
               >
                 {isSaving ? "Updating..." : "Update Existing"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Name Modal */}
+      {showEditModal && editingItinerary && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit Itinerary Name</h3>
+            <p className="edit-current-name">
+              Current name: <strong>{editingItinerary.name}</strong>
+            </p>
+            <input
+              type="text"
+              placeholder="Enter new name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              maxLength={100}
+              autoFocus
+            />
+            <div className="modal-buttons">
+              <button onClick={() => setShowEditModal(false)} disabled={isSaving}>
+                Cancel
+              </button>
+              <button
+                onClick={renameItinerary}
+                disabled={!editName.trim() || isSaving}
+              >
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
