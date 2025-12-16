@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Loader, Placeholder, useAuthenticator } from "@aws-amplify/ui-react";
 import "./App.css";
 import { Amplify } from "aws-amplify";
+import { fetchUserAttributes } from "aws-amplify/auth";
 import type { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import outputs from "../amplify_outputs.json";
@@ -20,6 +21,7 @@ function App() {
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { user, signOut } = useAuthenticator((context) => [context.user]);
+  const [userName, setUserName] = useState<string>("");
 
   // State for saved itineraries feature
   const [savedItineraries, setSavedItineraries] = useState<Schema["Itinerary"]["type"][]>([]);
@@ -48,6 +50,14 @@ function App() {
   // Fetch saved itineraries on mount
   useEffect(() => {
     fetchSavedItineraries();
+  }, []);
+
+  useEffect(() => {
+    const loadUserName = async () => {
+      const attributes = await fetchUserAttributes();
+      setUserName(attributes.preferred_username || "");
+    };
+    loadUserName();
   }, []);
 
   const fetchSavedItineraries = async () => {
@@ -367,7 +377,7 @@ function App() {
               </button>
             </div>
             <p className="description">
-              Welcome, {user?.signInDetails?.loginId || "User"}! Simply enter
+              Welcome, {userName || user?.signInDetails?.loginId || "User"}! Simply enter
               your destination, number of days, and interests (e.g., museums,
               food, nature), and Travel AI will generate a personalized
               itinerary on demand...
