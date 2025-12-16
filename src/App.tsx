@@ -46,6 +46,7 @@ function App() {
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [editingItinerary, setEditingItinerary] = useState<Schema["Itinerary"]["type"] | null>(null);
   const [editName, setEditName] = useState<string>("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
 
   // Fetch saved itineraries on mount
   useEffect(() => {
@@ -59,6 +60,19 @@ function App() {
     };
     loadUserName();
   }, []);
+
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.profile-menu-container')) {
+      setProfileMenuOpen(false);
+    }
+  };
+
+  document.addEventListener('click', handleClickOutside);
+  return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
 
   const fetchSavedItineraries = async () => {
     const { data, errors } = await amplifyClient.models.Itinerary.list();
@@ -361,20 +375,30 @@ function App() {
               <h1 className="main-header">
                 Meet Your Personal <span className="highlight">Travel AI</span>
               </h1>
+              <div className="profile-menu-container">
               <button
-                onClick={signOut}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#dc3545",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                }}
+                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                className="profile-btn"
               >
-                Sign Out
+                Profile ▾
               </button>
+              {profileMenuOpen && (
+                <div className="profile-dropdown">
+                  <div className="profile-dropdown-item profile-user">
+                    {displayName || user?.signInDetails?.loginId || "User"}
+                  </div>
+                  <button className="profile-dropdown-item" onClick={openChangeNameModal}>
+                    Change Name
+                  </button>
+                  <button className="profile-dropdown-item" onClick={openChangePasswordModal}>
+                    Change Password
+                  </button>
+                  <button className="profile-dropdown-item logout" onClick={signOut}>
+                    Log Out
+                  </button>
+                </div>
+              )}
+            </div>
             </div>
             <p className="description">
               Welcome, {userName || user?.signInDetails?.loginId || "User"}! Simply enter
