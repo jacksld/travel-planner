@@ -5,6 +5,7 @@ import { Amplify } from "aws-amplify";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import type { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
+import { updatePassword, updateUserAttribute, fetchUserAttributes } from "aws-amplify/auth";
 import outputs from "../amplify_outputs.json";
 import "@aws-amplify/ui-react/styles.css";
 
@@ -48,10 +49,23 @@ function App() {
   const [editName, setEditName] = useState<string>("");
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
 
+  // Profile management state
+  const [showChangeNameModal, setShowChangeNameModal] = useState<boolean>(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
+  const [newName, setNewName] = useState<string>("");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [currentPassword, setCurrentPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [profileLoading, setProfileLoading] = useState<boolean>(false);
+  const [profileError, setProfileError] = useState<string>("");
+
   // Fetch saved itineraries on mount
   useEffect(() => {
     fetchSavedItineraries();
+    loadUserDisplayName();
   }, []);
+
 
   useEffect(() => {
     const loadUserName = async () => {
@@ -83,6 +97,96 @@ function App() {
       setSavedItineraries(sorted);
     }
   };
+
+  const loadUserDisplayName = async () => {
+  try {
+    const attributes = await fetchUserAttributes();
+    if (attributes.name) {
+      setDisplayName(attributes.name);
+    }
+  } catch (error) {
+    console.error("Error fetching user attributes:", error);
+    }
+  };
+
+  const handleChangeName = async () => {
+    if (!newName.trim()) {
+      setProfileError("Please enter a name");
+      return;
+    }
+
+  setProfileLoading(true);
+  setProfileError("");
+
+  try {
+    await updateUserAttribute({
+      userAttribute: {
+        attributeKey: "name",
+        value: newName.trim(),
+      },
+    });
+    setDisplayName(newName.trim());
+    setShowChangeNameModal(false);
+    setNewName("");
+      } catch (error) {
+        setProfileError(error instanceof Error ? error.message : "Failed to update name");
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setProfileError("Please fill in all fields");
+      return;
+    }
+
+  if (newPassword !== confirmPassword) {
+    setProfileError("New passwords do not match");
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    setProfileError("Password must be at least 8 characters");
+    return;
+  }
+
+  setProfileLoading(true);
+  setProfileError("");
+
+  try {
+    await updatePassword({
+      oldPassword: currentPassword,
+      newPassword: newPassword,
+    });
+    setShowChangePasswordModal(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    alert("Password changed successfully!");
+      } catch (error) {
+        setProfileError(error instanceof Error ? error.message : "Failed to change password");
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+  const openChangeNameModal = () => {
+    setProfileMenuOpen(false);
+    setNewName(displayName);
+    setProfileError("");
+    setShowChangeNameModal(true);
+  };
+
+  const openChangePasswordModal = () => {
+    setProfileMenuOpen(false);
+    setProfileError("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowChangePasswordModal(true);
+  };
+
 
   const saveItinerary = async () => {
     if (!saveName.trim() || !result || !currentFormData) return;
@@ -594,6 +698,71 @@ function App() {
           </div>
         </div>
       )}
+          {/* Change Name Modal */}
+    {showChangeNameModal && (
+      <div className="modal-overlay" onClick={() => setShowChangeNameModal(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h3>Change Display Name</h3>
+          {profileError && <p className="modal-error">{profileError}</p>}
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            maxLength={50}
+            autoFocus
+          />
+          <div className="modal-buttons">
+            <button onClick={() => setShowChangeNameModal(false)} disabled={profileLoading}>
+              Cancel
+            </button>
+            <button onClick={handleChangeName} disabled={!newName.trim() || profileLoading}>
+              {profileLoading ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Change Password Modal */}
+    {showChangePasswordModal && (
+      <div className="modal-overlay" onClick={() => setShowChangePasswordModal(false)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h3>Change Password</h3>
+          {profileError && <p className="modal-error">{profileError}</p>}
+          <input
+            type="password"
+            placeholder="Current password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoFocus
+          />
+          <input
+            type="password"
+            placeholder="New password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+          <div className="modal-buttons">
+            <button onClick={() => setShowChangePasswordModal(false)} disabled={profileLoading}>
+              Cancel
+            </button>
+            <button
+              onClick={handleChangePassword}
+              disabled={!currentPassword || !newPassword || !confirmPassword || profileLoading}
+            >
+              {profileLoading ? "Changing..." : "Change Password"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

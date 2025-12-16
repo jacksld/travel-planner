@@ -481,3 +481,12 @@
   background-color: #fff5f5;
 }
 
+.modal-error {
+  color: #dc3545;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background-color: #fff5f5;
+  border-radius: 4px;
+}
+
