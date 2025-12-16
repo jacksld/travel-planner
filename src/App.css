@@ -2,6 +2,7 @@
 .app-layout {
   display: flex;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -152,19 +153,27 @@
 
 /* ===== Main Content ===== */
 .main-content {
-  flex: 1;
+  position: fixed;
+  left: 280px;
+  right: 0;
+  top: 0;
+  bottom: 0;
   overflow-y: auto;
-  margin-left: 280px;
-  transition: margin-left 0.3s ease;
+  transition: left 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.sidebar.closed + .main-content {
-  margin-left: 50px;
+.sidebar.closed ~ .main-content {
+  left: 50px;
 }
 
 
 .app-container {
-  margin: 0 auto;
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
   padding: 20px;
   text-align: center;
 }
@@ -194,6 +203,7 @@
   font-weight: 500;
   font-size: 1.125rem;
   max-width: 65ch;
+  margin: 0 auto;
   color: #1a202c;
 }
 .form-container {
@@ -204,6 +214,8 @@
   flex-direction: column;
   gap: 10px;
   align-items: center;
+  max-width: 48rem;
+  margin: 0 auto;
 }
 .wide-input {
   width: 100%;
@@ -230,6 +242,9 @@
   margin-top: 20px;
   transition: height 0.3s ease-out;
   overflow: hidden;
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 .loader-container {
   display: flex;
@@ -268,7 +283,7 @@
 /* ===== Saved View ===== */
 .saved-view {
   text-align: left;
-  max-width: 800px;
+  max-width: 48rem;
   margin: 0 auto;
 }
 
@@ -408,22 +423,25 @@
     min-width: 40px;
   }
 
-  .sidebar.closed + .main-content {
-    margin-left: 40px;
+  .sidebar.closed ~ .main-content {
+    left: 40px;
   }
 }
 
 /* Profile Menu Styles */
 .profile-menu-container {
-  position: relative;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
 }
 
 .profile-btn {
-  padding: 10px 20px;
+  padding: 10px 24px;
   background-color: #4a90a4;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 50px;
   cursor: pointer;
   font-size: 14px;
 }

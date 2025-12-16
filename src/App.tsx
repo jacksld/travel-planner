@@ -2,7 +2,6 @@ import { useState, useEffect, type FormEvent } from "react";
 import { Loader, Placeholder, useAuthenticator } from "@aws-amplify/ui-react";
 import "./App.css";
 import { Amplify } from "aws-amplify";
-import { fetchUserAttributes } from "aws-amplify/auth";
 import type { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import { updatePassword, updateUserAttribute, fetchUserAttributes } from "aws-amplify/auth";
@@ -21,8 +20,7 @@ const amplifyClient = generateClient<Schema>({
 function App() {
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const { user, signOut } = useAuthenticator((context) => [context.user]);
-  const [userName, setUserName] = useState<string>("");
+  const { signOut } = useAuthenticator((context) => [context.user]);
 
   // State for saved itineraries feature
   const [savedItineraries, setSavedItineraries] = useState<Schema["Itinerary"]["type"][]>([]);
@@ -66,15 +64,6 @@ function App() {
     loadUserDisplayName();
   }, []);
 
-
-  useEffect(() => {
-    const loadUserName = async () => {
-      const attributes = await fetchUserAttributes();
-      setUserName(attributes.preferred_username || "");
-    };
-    loadUserName();
-  }, []);
-
   useEffect(() => {
   const handleClickOutside = (event: MouseEvent) => {
     const target = event.target as HTMLElement;
@@ -101,8 +90,8 @@ function App() {
   const loadUserDisplayName = async () => {
   try {
     const attributes = await fetchUserAttributes();
-    if (attributes.name) {
-      setDisplayName(attributes.name);
+    if (attributes.preferred_username) {
+      setDisplayName(attributes.preferred_username);
     }
   } catch (error) {
     console.error("Error fetching user attributes:", error);
@@ -121,7 +110,7 @@ function App() {
   try {
     await updateUserAttribute({
       userAttribute: {
-        attributeKey: "name",
+        attributeKey: "preferred_username",
         value: newName.trim(),
       },
     });
@@ -467,45 +456,37 @@ function App() {
       {/* Main Content Area */}
       <main className="main-content">
         <div className="app-container">
-          <div className="header-container">
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "1rem",
-              }}
+          {/* Profile Menu - Top Right */}
+          <div className="profile-menu-container">
+            <button
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="profile-btn"
             >
-              <h1 className="main-header">
-                Meet Your Personal <span className="highlight">Travel AI</span>
-              </h1>
-              <div className="profile-menu-container">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="profile-btn"
-              >
-                Profile ▾
-              </button>
-              {profileMenuOpen && (
-                <div className="profile-dropdown">
-                  <div className="profile-dropdown-item profile-user">
-                    {displayName || user?.signInDetails?.loginId || "User"}
-                  </div>
-                  <button className="profile-dropdown-item" onClick={openChangeNameModal}>
-                    Change Name
-                  </button>
-                  <button className="profile-dropdown-item" onClick={openChangePasswordModal}>
-                    Change Password
-                  </button>
-                  <button className="profile-dropdown-item logout" onClick={signOut}>
-                    Log Out
-                  </button>
+              Profile ▾
+            </button>
+            {profileMenuOpen && (
+              <div className="profile-dropdown">
+                <div className="profile-dropdown-item profile-user">
+                  {displayName || "User"}
                 </div>
-              )}
-            </div>
-            </div>
+                <button className="profile-dropdown-item" onClick={openChangeNameModal}>
+                  Change Name
+                </button>
+                <button className="profile-dropdown-item" onClick={openChangePasswordModal}>
+                  Change Password
+                </button>
+                <button className="profile-dropdown-item logout" onClick={signOut}>
+                  Log Out
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="header-container">
+            <h1 className="main-header">
+              Meet Your Personal <span className="highlight">Travel AI</span>
+            </h1>
             <p className="description">
-              Welcome, {userName || user?.signInDetails?.loginId || "User"}! Simply enter
+              Welcome, {displayName || "User"}! Simply enter
               your destination, number of days, and interests (e.g., museums,
               food, nature), and Travel AI will generate a personalized
               itinerary on demand...
